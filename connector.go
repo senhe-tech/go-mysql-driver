@@ -11,15 +11,21 @@ package mysql
 import (
 	"context"
 	"database/sql/driver"
+	"github.com/senhe-tech/go-utils/utils"
 	"net"
 	"os"
 	"strconv"
 	"strings"
 )
 
+var (
+	ErrReconnectProhibited = utils.NewError("ReconnectProhibited")
+)
+
 type connector struct {
 	cfg               *Config // immutable private copy.
 	encodedAttributes string  // Encoded connection attributes.
+	connected         atomicBool
 }
 
 func encodeConnectionAttributes(cfg *Config) string {
@@ -64,6 +70,10 @@ func newConnector(cfg *Config) *connector {
 // Connect implements driver.Connector interface.
 // Connect returns a connection to the database.
 func (c *connector) Connect(ctx context.Context) (driver.Conn, error) {
+	if c.connected.Load() {
+		return nil, ErrReconnectProhibited
+	}
+
 	var err error
 
 	// Invoke beforeConnect if present, with a copy of the configuration
@@ -206,6 +216,7 @@ func (c *connector) Connect(ctx context.Context) (driver.Conn, error) {
 		return nil, err
 	}
 
+	c.connected.Store(true)
 	return mc, nil
 }
 
