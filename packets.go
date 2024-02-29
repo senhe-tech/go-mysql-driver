@@ -886,7 +886,7 @@ func (mc *mysqlConn) readUntilEOF() error {
 
 // Prepare Result Packets
 // http://dev.mysql.com/doc/internals/en/com-stmt-prepare-response.html
-func (stmt *mysqlStmt) readPrepareResultPacket() (uint16, error) {
+func (stmt *mysqlStmt) readPrepareResultPacket() (int, error) {
 	data, err := stmt.mc.readPacket()
 	if err == nil {
 		// packet indicator [1 byte]
@@ -898,7 +898,7 @@ func (stmt *mysqlStmt) readPrepareResultPacket() (uint16, error) {
 		stmt.id = binary.LittleEndian.Uint32(data[1:5])
 
 		// Column count [16 bit uint]
-		columnCount := binary.LittleEndian.Uint16(data[5:7])
+		stmt.columnCount = int(binary.LittleEndian.Uint16(data[5:7]))
 
 		// Param count [16 bit uint]
 		stmt.paramCount = int(binary.LittleEndian.Uint16(data[7:9]))
@@ -907,7 +907,7 @@ func (stmt *mysqlStmt) readPrepareResultPacket() (uint16, error) {
 
 		// Warning count [16 bit uint]
 
-		return columnCount, nil
+		return stmt.columnCount, nil
 	}
 	return 0, err
 }
