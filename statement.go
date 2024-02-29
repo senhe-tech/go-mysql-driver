@@ -17,9 +17,10 @@ import (
 )
 
 type mysqlStmt struct {
-	mc         *mysqlConn
-	id         uint32
-	paramCount int
+	mc          *mysqlConn
+	id          uint32
+	paramCount  int
+	columnCount int
 }
 
 func (stmt *mysqlStmt) Close() error {
@@ -38,6 +39,10 @@ func (stmt *mysqlStmt) Close() error {
 
 func (stmt *mysqlStmt) NumInput() int {
 	return stmt.paramCount
+}
+
+func (stmt *mysqlStmt) NumColumns() int {
+	return stmt.columnCount
 }
 
 func (stmt *mysqlStmt) ColumnConverter(idx int) driver.ValueConverter {
