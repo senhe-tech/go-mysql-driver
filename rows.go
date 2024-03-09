@@ -35,6 +35,27 @@ type textRows struct {
 	mysqlRows
 }
 
+type FieldData []byte
+
+type Field struct {
+	Data         FieldData
+	Schema       []byte
+	Table        []byte
+	OrgTable     []byte
+	Name         []byte
+	OrgName      []byte
+	Charset      uint16
+	ColumnLength uint32
+	Type         uint8
+	Flag         uint16
+	Decimal      uint8
+
+	DefaultValueLength uint64
+	DefaultValue       []byte
+
+	DatabaseTypeName string
+}
+
 func (rows *mysqlRows) Columns() []string {
 	if rows.rs.columnNames != nil {
 		return rows.rs.columnNames
@@ -56,6 +77,25 @@ func (rows *mysqlRows) Columns() []string {
 	}
 
 	rows.rs.columnNames = columns
+
+	return columns
+}
+
+func (rows *mysqlRows) ColumnsDetails() []*Field {
+	columns := make([]*Field, len(rows.rs.columns))
+	for i := range columns {
+		columns[i] = &Field{
+			Table:            []byte(rows.rs.columns[i].tableName),
+			Name:             []byte(rows.rs.columns[i].name),
+			Charset:          uint16(rows.rs.columns[i].charSet),
+			ColumnLength:     rows.rs.columns[i].length,
+			Type:             uint8(rows.rs.columns[i].fieldType),
+			Flag:             uint16(rows.rs.columns[i].flags),
+			Decimal:          rows.rs.columns[i].decimals,
+			DatabaseTypeName: rows.rs.columns[i].typeDatabaseName(),
+		}
+	}
+
 	return columns
 }
 
