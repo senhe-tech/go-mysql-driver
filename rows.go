@@ -10,7 +10,6 @@ package mysql
 
 import (
 	"database/sql/driver"
-	"github.com/senhe-tech/go-utils/utils"
 	"io"
 	"math"
 	"reflect"
@@ -36,25 +35,66 @@ type textRows struct {
 	mysqlRows
 }
 
+type FieldData []byte
+
+type Field struct {
+	Data         FieldData
+	Schema       []byte
+	Table        []byte
+	OrgTable     []byte
+	Name         []byte
+	OrgName      []byte
+	Charset      uint16
+	ColumnLength uint32
+	Type         uint8
+	Flag         uint16
+	Decimal      uint8
+
+	DefaultValueLength uint64
+	DefaultValue       []byte
+
+	DatabaseTypeName string
+}
+
 func (rows *mysqlRows) Columns() []string {
 	if rows.rs.columnNames != nil {
 		return rows.rs.columnNames
 	}
 
 	columns := make([]string, len(rows.rs.columns))
-	for i := range columns {
-		fieldInfo := map[string]any{
-			"table_name": rows.rs.columns[i].TableName,
-			"name":       rows.rs.columns[i].Name,
-			"length":     rows.rs.columns[i].Length,
-			"flags":      rows.rs.columns[i].Flags,
-			"field_type": rows.rs.columns[i].FieldType,
-			"decimals":   rows.rs.columns[i].Decimals,
-			"charset":    rows.rs.columns[i].Charset,
+	if rows.mc != nil && rows.mc.cfg.ColumnsWithAlias {
+		for i := range columns {
+			if tableName := rows.rs.columns[i].TableName; len(tableName) > 0 {
+				columns[i] = tableName + "." + rows.rs.columns[i].Name
+			} else {
+				columns[i] = rows.rs.columns[i].Name
+			}
 		}
-		columns[i] = utils.MustJSON(fieldInfo)
+	} else {
+		for i := range columns {
+			columns[i] = rows.rs.columns[i].Name
+		}
 	}
 	rows.rs.columnNames = columns
+
+	return columns
+}
+
+func (rows *mysqlRows) ColumnsDetails() []*Field {
+	columns := make([]*Field, len(rows.rs.columns))
+	for i := range columns {
+		columns[i] = &Field{
+			Table:            []byte(rows.rs.columns[i].TableName),
+			Name:             []byte(rows.rs.columns[i].Name),
+			Charset:          uint16(rows.rs.columns[i].Charset),
+			ColumnLength:     rows.rs.columns[i].Length,
+			Type:             uint8(rows.rs.columns[i].FieldType),
+			Flag:             uint16(rows.rs.columns[i].Flags),
+			Decimal:          rows.rs.columns[i].Decimals,
+			DatabaseTypeName: rows.rs.columns[i].TypeDatabaseName(),
+		}
+	}
+
 	return columns
 }
 
