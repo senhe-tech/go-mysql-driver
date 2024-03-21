@@ -19,6 +19,7 @@ type resultSet struct {
 	columns     []mysqlField
 	columnNames []string
 	done        bool
+	warnings    uint16
 }
 
 type mysqlRows struct {
@@ -97,6 +98,10 @@ func (rows *mysqlRows) ColumnsDetails() []*Field {
 	}
 
 	return columns
+}
+
+func (rows *mysqlRows) WarningCount() uint16 {
+	return rows.rs.warnings
 }
 
 func (rows *mysqlRows) ColumnTypeDatabaseTypeName(i int) string {
