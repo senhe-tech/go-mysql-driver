@@ -31,6 +31,7 @@ type mysqlResult struct {
 	// One entry in both slices is created for every executed statement result.
 	affectedRows []int64
 	insertIds    []int64
+	warnings     uint16
 }
 
 func (res *mysqlResult) LastInsertId() (int64, error) {
@@ -39,6 +40,10 @@ func (res *mysqlResult) LastInsertId() (int64, error) {
 
 func (res *mysqlResult) RowsAffected() (int64, error) {
 	return res.affectedRows[len(res.affectedRows)-1], nil
+}
+
+func (res *mysqlResult) WarningCount() uint16 {
+	return res.warnings
 }
 
 func (res *mysqlResult) AllLastInsertIds() []int64 {

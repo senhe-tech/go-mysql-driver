@@ -664,6 +664,7 @@ func (mc *okHandler) handleOkPacket(data []byte) error {
 	}
 
 	// warning count [2 bytes]
+	mc.result.warnings = binary.LittleEndian.Uint16(data[1+n+m+2 : 1+n+m+4])
 
 	return nil
 }
@@ -783,14 +784,24 @@ func (rows *textRows) readRow(dest []driver.Value) error {
 	}
 
 	// EOF Packet
-	if data[0] == iEOF && len(data) == 5 {
-		// server_status [2 bytes]
-		rows.mc.status = readStatus(data[3:])
-		rows.rs.done = true
-		if !rows.HasNextResultSet() {
-			rows.mc = nil
+	// EOF包结构:
+	// 1字节  EOF值(0xFE)
+	// 2字节  告警计数
+	// 2字节  状态标志位
+	if data[0] == iEOF {
+		// 如果data长度大于4, 则说明服务器返回了warning count
+		if len(data) > 4 {
+			rows.rs.warnings = binary.LittleEndian.Uint16(data[1:3])
 		}
-		return io.EOF
+		if len(data) == 5 {
+			// server_status [2 bytes]
+			rows.mc.status = readStatus(data[3:])
+			rows.rs.done = true
+			if !rows.HasNextResultSet() {
+				rows.mc = nil
+			}
+			return io.EOF
+		}
 	}
 	if data[0] == iERR {
 		rows.mc = nil
