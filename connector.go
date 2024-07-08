@@ -16,6 +16,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync/atomic"
 )
 
 var (
@@ -25,7 +26,8 @@ var (
 type connector struct {
 	cfg               *Config // immutable private copy.
 	encodedAttributes string  // Encoded connection attributes.
-	connected         atomicBool
+	// 见官方pr #1558 drop support of Go 1.19; replace atomicBool by atomic.Bool
+	connected atomic.Bool
 }
 
 func encodeConnectionAttributes(cfg *Config) string {
